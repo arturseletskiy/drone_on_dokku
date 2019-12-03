@@ -1,0 +1,88 @@
+---
+- name: 'import dokku'
+  import_role:
+    name: 'dokku'
+
+- name: Configure
+  import_role:
+    name: common
+
+- name: Create drone-server app
+  dokku_app:
+    app: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+
+- name: Mount drone-server storage
+  dokku_storage:
+    app: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+    mounts: /var/lib/dokku/data/storage/drone-server/:/var/lib/drone
+    create_host_dir: true
+
+- name: 'Clear global domains'
+  dokku_domains:
+    global: true
+    domains:
+      - localhost
+    state: clear
+
+- name: 'Set global domain'
+  dokku_domains:
+    global: true
+    domains:
+      - "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+    state: present
+
+- name: 'Clear app domain'
+  dokku_domains:
+    global: true
+    domains:
+      - "{{ lookup('env', 'DRONE_SERVER_HOST') }}.localhost"
+    state: clear
+
+- name: 'Set app domain'
+  dokku_domains:
+    app: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+    domains:
+      - "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}.{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+    state: present
+
+- name: Fill config for drone-server
+  dokku_config:
+    app: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+    config:
+      DRONE_RPC_SECRET: "{{ lookup('env', 'DRONE_RPC_SECRET') }}"
+      DRONE_SERVER_HOST: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}.{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+      DRONE_SERVER_PROTO: "{{ lookup('env', 'DRONE_SERVER_PROTO') }}"
+      DRONE_GIT_ALWAYS_AUTH: "{{ lookup('env', 'DRONE_GIT_ALWAYS_AUTH') }}"
+      DRONE_USER_CREATE: "{{ lookup('env', 'DRONE_USER_CREATE') }}"
+      DRONE_GITHUB_CLIENT_ID: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_ID') }}"
+      DRONE_GITHUB_CLIENT_SECRET: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_SECRET') }}"
+
+- name: build options for drone_server
+  dokku_docker_options:
+    app: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+    phase: build
+    option: "--build-arg DRONE_RPC_SECRET={{ lookup('env', 'DRONE_RPC_SECRET') }}"
+
+- name: install server from image
+  command:
+    cmd: docker pull drone/drone:1
+
+- name: add dokku tag
+  command:
+    cmd: docker tag drone/drone:1 dokku/{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}:1
+
+- name: 'set http (deploy letsencrypt hack)'
+  command:
+    cmd: "dokku proxy:ports-set {{ lookup('env', 'DRONE_SERVER_APP_NAME') }} http:80:80"
+
+- name: deploy from tag
+  command:
+    cmd: "dokku tags:deploy {{ lookup('env', 'DRONE_SERVER_APP_NAME') }} 1"
+
+- name: letsencrypt
+  command:
+    cmd: "dokku letsencrypt {{ lookup('env', 'DRONE_SERVER_APP_NAME') }}"
+
+- name: 'set https'
+  command:
+    cmd: "dokku proxy:ports-set {{ lookup('env', 'DRONE_SERVER_APP_NAME') }} https:443:80"

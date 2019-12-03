@@ -1,0 +1,4 @@
+---
+- name: 'install dokku DOKKU_LETSENCRYPT_EMAIL'
+  command:
+    cmd: dokku config:set --global DOKKU_LETSENCRYPT_EMAIL={{ lookup('env', 'DOKKU_LETSENCRYPT_EMAIL') }}

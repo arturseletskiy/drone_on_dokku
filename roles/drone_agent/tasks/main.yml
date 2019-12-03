@@ -1,0 +1,46 @@
+---
+- name: 'import dokku'
+  import_role:
+    name: 'dokku'
+
+- name: Configure
+  import_role:
+    name: common
+
+- name: Create drone-agent app
+  dokku_app:
+    app: "{{ DRONE_AGENT_APP_NAME }}"
+
+- name: Mount drone-agent storage
+  dokku_storage:
+    app: "{{ DRONE_AGENT_APP_NAME }}"
+    mounts: /var/run/docker.sock:/var/run/docker.sock
+
+- name: Fill config for drone-agent
+  dokku_config:
+    app: "{{ DRONE_AGENT_APP_NAME }}"
+    config:
+      DRONE_RPC_SECRET: "{{ lookup('env', 'DRONE_RPC_SECRET') }}"
+      DRONE_RPC_HOST: "{{ lookup('env', 'DRONE_SERVER_APP_NAME') }}.{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+      DRONE_RPC_PROTO: "{{ lookup('env', 'DRONE_SERVER_PROTO') }}"
+      DRONE_RUNNER_CAPACITY: "{{ DRONE_RUNNER_CAPACITY }}"
+      DRONE_RUNNER_NAME: "{{ DRONE_AGENT_APP_NAME }}"
+
+- name: build options for drone_server
+  dokku_docker_options:
+    app: "{{ DRONE_AGENT_APP_NAME }}"
+    phase: build
+    option:
+      - "--build-arg DRONE_RPC_SECRET={{ lookup('env', 'DRONE_RPC_SECRET') }}"
+
+- name: install agent from image
+  command:
+    cmd: "docker pull drone/drone-runner-docker:1"
+
+- name: add dokku tag
+  command:
+    cmd: "docker tag drone/drone-runner-docker:1 dokku/{{ DRONE_AGENT_APP_NAME }}:1"
+
+- name: deploy from tag
+  command:
+    cmd: "dokku tags:deploy {{ DRONE_AGENT_APP_NAME }} 1"

@@ -1,0 +1,3 @@
+- src: https://github.com/dokku/ansible-dokku.git
+  version: master
+  name: ansible-dokku

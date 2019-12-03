@@ -1,0 +1,12 @@
+---
+ansible_user: root
+remote_user: root
+dokku_plugins:
+  - name: postgres
+    url: https://github.com/dokku/dokku-postgres.git
+
+  - name: redis
+    url: https://github.com/dokku/dokku-redis.git
+
+  - name: letsencrypt
+    url: https://github.com/dokku/dokku-letsencrypt.git
