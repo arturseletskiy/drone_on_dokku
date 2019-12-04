@@ -2,23 +2,26 @@ all:
   vars:
     DRONE_RPC_SECRET: "{{ lookup('env', 'DRONE_RPC_SECRET') }}"
     DRONE_SERVER_PROTO: "{{ lookup('env', 'DRONE_SERVER_PROTO') }}"
-    DRONE_GIT_ALWAYS_AUTH: "{{ lookup('env', 'DRONE_GIT_ALWAYS_AUTH') }}"
-    DRONE_USER_CREATE: "{{ lookup('env', 'DRONE_USER_CREATE') }}"
-    DRONE_GITHUB_CLIENT_ID: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_ID') }}"
-    DRONE_GITHUB_CLIENT_SECRET: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_SECRET') }}"
   children:
-    server:
-      ansible_host: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
-      dokku_hostname: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
-    agents:
+    drone-server:
+      vars:
+        DRONE_GIT_ALWAYS_AUTH: "{{ lookup('env', 'DRONE_GIT_ALWAYS_AUTH') }}"
+        DRONE_USER_CREATE: "{{ lookup('env', 'DRONE_USER_CREATE') }}"
+        DRONE_GITHUB_CLIENT_ID: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_ID') }}"
+        DRONE_GITHUB_CLIENT_SECRET: "{{ lookup('env', 'DRONE_GITHUB_CLIENT_SECRET') }}"
+      hosts:
+        drone-server-1:
+          ansible_host: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+          dokku_hostname: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+    drone-agents:
       hosts:
         drone-agent-1:
-          ansible_host:
-          dokku_hostname:
+          ansible_host: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+          dokku_hostname: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
           DRONE_AGENT_APP_NAME: drone-agent-1
           DRONE_RUNNER_CAPACITY: "1"
         drone-agent-2:
-          ansible_host:
-          dokku_hostname: 
+          ansible_host: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
+          dokku_hostname: "{{ lookup('env', 'DRONE_SERVER_HOST') }}"
           DRONE_AGENT_APP_NAME: drone-agent-2
           DRONE_RUNNER_CAPACITY: "1"

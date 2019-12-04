@@ -1,5 +1,5 @@
 ---
-- hosts: agents
+- hosts: drone-agents
   vars_files:
     - vars_files/drone_on_dokku.yml
   roles:
